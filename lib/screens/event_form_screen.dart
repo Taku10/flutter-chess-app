@@ -21,6 +21,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   final _titleCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
+
   DateTime _startTime = DateTime.now().add(const Duration(hours: 2));
   bool _isOnline = false;
   bool _saving = false;
@@ -47,18 +48,24 @@ class _EventFormScreenState extends State<EventFormScreen> {
   }
 
   Future<void> _pickDateTime() async {
+    // First pick date
     final date = await showDatePicker(
       context: context,
       initialDate: _startTime,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (date == null) return;
+
+    if (!mounted || date == null) return;
+
+    // Then pick time
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_startTime),
     );
-    if (time == null) return;
+
+    if (!mounted || time == null) return;
+
     setState(() {
       _startTime = DateTime(
         date.year,
@@ -75,10 +82,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
 
     setState(() => _saving = true);
     final service = FirestoreService();
-    final navigator = Navigator.of(context);
+    final navigator = Navigator.of(context); // capture BEFORE any await
 
     try {
       if (widget.existing == null) {
+        // Create new event / tournament
         await service.createEvent(
           title: _titleCtrl.text.trim(),
           type: widget.type,
@@ -88,6 +96,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
           isOnline: _isOnline,
         );
       } else {
+        // Update existing
         final updated = ChessEvent(
           id: widget.existing!.id,
           title: _titleCtrl.text.trim(),
@@ -101,16 +110,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
         await service.updateEvent(updated);
       }
 
-      if (mounted) {
-        navigator.pop();
-      }
+      if (!mounted) return;
+      navigator.pop(); // safe: we’re using captured navigator, not context
     } finally {
       if (mounted) {
         setState(() => _saving = false);
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +127,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
         : 'New ${widget.type == 'tournament' ? 'tournament' : 'event'}';
 
     return Scaffold(
-      appBar: AppBar(title: Text(titleText)),
+      appBar: AppBar(
+        title: Text(titleText),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -150,8 +159,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
               Row(
                 children: [
                   Text(
-                    'Starts: ${_startTime.year}-${_startTime.month.toString().padLeft(2, '0')}-${_startTime.day.toString().padLeft(2, '0')} '
-                        '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
+                    'Starts: ${_startTime.year}-'
+                        '${_startTime.month.toString().padLeft(2, '0')}-'
+                        '${_startTime.day.toString().padLeft(2, '0')} '
+                        '${_startTime.hour.toString().padLeft(2, '0')}:'
+                        '${_startTime.minute.toString().padLeft(2, '0')}',
                   ),
                   const Spacer(),
                   TextButton(
