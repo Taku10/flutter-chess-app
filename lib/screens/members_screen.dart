@@ -3,7 +3,8 @@ import '../services/firestore_service.dart';
 import '../models/member.dart';
 
 class MembersScreen extends StatelessWidget {
-  const MembersScreen({super.key});
+  final bool isOfficer;
+  const MembersScreen({super.key, required this.isOfficer});
 
   @override
   Widget build(BuildContext context) {
@@ -32,25 +33,64 @@ class MembersScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             final m = members[index];
 
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              child: ListTile(
-                leading: CircleAvatar(
-                  child: Text(
-                    m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
+            final tile = ListTile(
+              leading: CircleAvatar(
+                child: Text(
+                  m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
+                ),
+              ),
+              title: Text(m.name),
+              subtitle: Text(
+                [
+                  if (m.rating != null) 'Rating: ${m.rating}',
+                  if (m.isOfficer) 'Officer',
+                ].join(' • '),
+              ),
+            );
+
+            if (!isOfficer) return Card(margin: const EdgeInsets.symmetric(vertical: 6), child: tile);
+
+            // Officers: can swipe to delete
+            return Dismissible(
+              key: ValueKey(m.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                color: Colors.red,
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
+              confirmDismiss: (_) async {
+                return await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Delete member'),
+                    content: Text('Remove ${m.name} from members?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Delete'),
+                      ),
+                    ],
                   ),
-                ),
-                title: Text(m.name),
-                subtitle: Text(
-                  [
-                    if (m.rating != null) 'Rating: ${m.rating}',
-                    if (m.isOfficer) 'Officer',
-                  ].join(' • '),
-                ),
+                ) ??
+                    false;
+              },
+              onDismissed: (_) async {
+                await FirestoreService().deleteMember(m.id);
+              },
+              child: Card(
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                child: tile,
               ),
             );
           },
         );
+
       },
     );
   }

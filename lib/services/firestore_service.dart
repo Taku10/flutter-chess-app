@@ -30,6 +30,14 @@ class FirestoreService {
     });
   }
 
+  Stream<Member?> getMemberById(String uid) {
+    return _membersRef.doc(uid).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return Member.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
+    });
+  }
+
+
   // added RSVP to event
   Future<void> rsvpToEvent({
     required String eventId,
@@ -54,4 +62,50 @@ class FirestoreService {
     )
         .toList());
   }
+
+
+
+  // Create a new event/tournament
+  Future<void> createEvent({
+    required String title,
+    required String type, // "event" or "tournament"
+    required DateTime startTime,
+    required String location,
+    required String description,
+    required bool isOnline,
+  }) {
+    return _eventsRef.add({
+      'title': title,
+      'type': type,
+      'startTime': Timestamp.fromDate(startTime),
+      'location': location,
+      'description': description,
+      'isOnline': isOnline,
+      'rsvpNames': <String>[],
+    });
+  }
+
+// Update existing event
+  Future<void> updateEvent(ChessEvent event) {
+    return _eventsRef.doc(event.id).update({
+      'title': event.title,
+      'type': event.type,
+      'startTime': Timestamp.fromDate(event.startTime),
+      'location': event.location,
+      'description': event.description,
+      'isOnline': event.isOnline,
+      'rsvpNames': event.rsvpNames,
+    });
+  }
+
+// Delete event
+  Future<void> deleteEvent(String eventId) {
+    return _eventsRef.doc(eventId).delete();
+  }
+
+// Delete member
+  Future<void> deleteMember(String memberId) {
+    return _membersRef.doc(memberId).delete();
+  }
+
 }

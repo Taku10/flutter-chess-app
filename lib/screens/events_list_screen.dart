@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 import '../models/event.dart';
 import 'event_detail_screen.dart';
+import 'event_form_screen.dart';
 
 class EventsListScreen extends StatelessWidget {
   final String type; // "event" or "tournament"
-  const EventsListScreen({super.key, required this.type});
+  final bool isOfficer;
+
+  const EventsListScreen({
+    super.key,
+    required this.type,
+    required this.isOfficer,
+  });
 
   String get _titleText =>
       type == 'event' ? 'Upcoming Events' : 'Tournaments';
@@ -40,6 +47,7 @@ class EventsListScreen extends StatelessWidget {
           itemCount: events.length,
           itemBuilder: (context, index) {
             final event = events[index];
+
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
@@ -47,7 +55,6 @@ class EventsListScreen extends StatelessWidget {
                 subtitle: Text(
                   '${_formatDateTime(event.startTime)} · ${event.location}',
                 ),
-                trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -55,6 +62,34 @@ class EventsListScreen extends StatelessWidget {
                     ),
                   );
                 },
+                trailing: isOfficer
+                    ? PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EventFormScreen(
+                            type: type,
+                            existing: event,
+                          ),
+                        ),
+                      );
+                    } else if (value == 'delete') {
+                      await FirestoreService().deleteEvent(event.id);
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Edit'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
+                  ],
+                )
+                    : const Icon(Icons.chevron_right),
               ),
             );
           },
