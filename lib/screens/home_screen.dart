@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'events_list_screen.dart';
 import 'members_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'event_form_screen.dart';
+import 'auth/sign_in_screen.dart';
+import '../models/member.dart';
+import '../services/firestore_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,96 +15,138 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // For the tabs, 1 - Events, 2 - Tournaments, 3 - Members
+  // 0 = Events, 1 = Tournaments, 2 = Members
   int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      const EventsListScreen(type: 'event'),
-      const EventsListScreen(type: 'tournament'),
-      const MembersScreen(),
-    ];
+    final user = FirebaseAuth.instance.currentUser;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B192F),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'CSS Chess Club',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'Think ahead. One move at a time.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white10,
-              child: Icon(Icons.grid_on), // chessboard-ish
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Top hero card
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _buildHeroCard(context),
-          ),
+    if (user == null) {
+      // Failsafe – normally handled by AuthGate
+      return const SignInScreen();
+    }
 
-          // Chips to toggle section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Wrap(
-              spacing: 8,
+    final service = FirestoreService();
+
+    return StreamBuilder<Member?>(
+      stream: service.getMemberById(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF0B192F),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final isOfficer = snapshot.data?.isOfficer == true;
+
+        final pages = [
+          EventsListScreen(type: 'event', isOfficer: isOfficer),
+          EventsListScreen(type: 'tournament', isOfficer: isOfficer),
+          MembersScreen(isOfficer: isOfficer),
+        ];
+
+        return Scaffold(
+          backgroundColor: const Color(0xFF0B192F),
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: false,
+            title: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildToggleChip(label: 'Events', index: 0),
-                _buildToggleChip(label: 'Tournaments', index: 1),
-                _buildToggleChip(label: 'Members', index: 2),
+                Text(
+                  'CSS Chess Club',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Think ahead. One move at a time.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
               ],
             ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // This part here is for the white space to show current tab details
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.white),
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                },
               ),
-              child: Container(
-                color: Theme.of(context).colorScheme.surface,
-                child: pages[_selectedIndex],
+              const Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white10,
+                  child: Icon(Icons.grid_on, color: Colors.white),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+          body: Column(
+            children: [
+              // Top hero card
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: _buildHeroCard(context),
+              ),
+
+              // Chips to toggle section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    _buildToggleChip(label: 'Events', index: 0),
+                    _buildToggleChip(label: 'Tournaments', index: 1),
+                    _buildToggleChip(label: 'Members', index: 2),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // White sheet with current tab details
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: pages[_selectedIndex],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          floatingActionButton: isOfficer && _selectedIndex != 2
+              ? FloatingActionButton(
+            onPressed: () {
+              final type =
+              _selectedIndex == 0 ? 'event' : 'tournament';
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EventFormScreen(type: type),
+                ),
+              );
+            },
+            child: const Icon(Icons.add),
+          )
+              : null,
+        );
+      },
     );
   }
-
-
 
   Widget _buildHeroCard(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -117,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black,
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -140,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          // This is for the text content
+          // Text content
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       selectedColor: Colors.greenAccent.withOpacity(0.2),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.greenAccent[400] : Colors.black,
+        color: isSelected ? Colors.greenAccent[400] : Colors.white,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       backgroundColor: Colors.white10,
