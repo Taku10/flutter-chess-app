@@ -213,7 +213,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     // Year in school
                     DropdownButtonFormField<String>(
-                      value: _yearInSchool,
+                      initialValue: _yearInSchool,
                       decoration: const InputDecoration(
                         labelText: 'Year in school',
                         prefixIcon: Icon(Icons.school),

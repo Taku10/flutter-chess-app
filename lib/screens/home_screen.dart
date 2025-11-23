@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha:0.4),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -177,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha:0.15),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
@@ -227,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _selectedIndex = index;
         });
       },
-      selectedColor: Colors.greenAccent.withOpacity(0.2),
+      selectedColor: Colors.greenAccent.withValues(alpha:0.2),
       labelStyle: TextStyle(
         color: isSelected ? Colors.greenAccent[400] : Colors.white,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

@@ -75,6 +75,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
 
     setState(() => _saving = true);
     final service = FirestoreService();
+    final navigator = Navigator.of(context);
 
     try {
       if (widget.existing == null) {
@@ -99,11 +100,17 @@ class _EventFormScreenState extends State<EventFormScreen> {
         );
         await service.updateEvent(updated);
       }
-      if (mounted) Navigator.of(context).pop();
+
+      if (mounted) {
+        navigator.pop();
+      }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
