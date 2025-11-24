@@ -229,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       selectedColor: Colors.greenAccent.withValues(alpha:0.2),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.greenAccent[400] : Colors.white,
+        color: isSelected ? Colors.greenAccent[400] : Colors.black,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       backgroundColor: Colors.white10,

@@ -6,12 +6,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth/sign_in_screen.dart';
+import 'services/seed_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Seed only if collections are empty
+  await ensureSeedDataLoaded();
   runApp(const ChessClubApp());
 }
 
@@ -22,6 +26,7 @@ class ChessClubApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CSS Chess Club',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
